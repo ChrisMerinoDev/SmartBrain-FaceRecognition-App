@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Lock, Github, Chrome, UserIcon } from "lucide-react";
+import { Mail, Lock, UserIcon } from "lucide-react";
 import { useState } from "react";
 
 export default function RegisterCard({ onRouteChange, loadUser }) {

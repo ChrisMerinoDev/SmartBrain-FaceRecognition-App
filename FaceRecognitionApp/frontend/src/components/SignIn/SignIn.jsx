@@ -1,10 +1,9 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Lock, Github, Chrome } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { useState } from "react";
 
 export default function SignInCard({ onRouteChange, loadUser }) {
