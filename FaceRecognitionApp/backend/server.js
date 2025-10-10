@@ -18,7 +18,7 @@ const PORT = process.env.PORT
 const FRONTEND_URL =process.env.FRONTEND_URL
 
 const app = express();
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 

@@ -4,56 +4,90 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = RAW_API_BASE ? RAW_API_BASE.replace(/\/+$/, "") : "";
 
 export default function SignInCard({ onRouteChange, loadUser }) {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onEmailChange = (e) => {
-    setUserEmail(e.target.value)
-    if (errorMessage) setErrorMessage("")
-  }
+    setUserEmail(e.target.value);
+    if (errorMessage) setErrorMessage("");
+  };
 
   const onPasswordChange = (e) => {
-    setUserPassword(e.target.value)
-    if (errorMessage) setErrorMessage("")
-  }
+    setUserPassword(e.target.value);
+    if (errorMessage) setErrorMessage("");
+  };
 
   const onSubmitSignIn = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
+    // Basic client-side validation
+    if (!userEmail.trim() || !userPassword.trim()) {
+      setErrorMessage("Please enter your email and password.");
+      return;
+    }
+    if (!API_BASE) {
+      setErrorMessage("App is misconfigured: missing API base URL.");
+      return;
+    }
+
+    setLoading(true);
     setErrorMessage("");
-  
+
     try {
       const res = await fetch(`${API_BASE}/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // add credentials: "include" only if you use cookies/sessions
-        body: JSON.stringify({ email: userEmail, password: userPassword })
+        // credentials: "include" // only if you use cookies/sessions
+        body: JSON.stringify({ email: userEmail, password: userPassword }),
       });
-  
+
       if (!res.ok) {
-        // Optional: read error message from server if provided
-        const msg = await res.text().catch(() => "");
-        throw new Error(msg || "Invalid credentials");
+        // Prefer server-provided JSON error if available
+        const ct = res.headers.get("content-type") || "";
+        let msg = "Invalid credentials";
+        if (ct.includes("application/json")) {
+          const data = await res.json().catch(() => null);
+          if (data?.error) msg = data.error;
+        } else {
+          const text = await res.text().catch(() => "");
+          if (text) msg = text;
+        }
+        throw new Error(msg);
       }
-  
+
       const user = await res.json();
       if (user?.id) {
         loadUser(user);
         onRouteChange("home");
       } else {
-        setErrorMessage("Invalid Credentials");
+        setErrorMessage("Invalid credentials");
       }
     } catch (err) {
-      console.error(err);
-      setErrorMessage(err.message || "Something went wrong. Please try again.");
+      const friendly =
+        (err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message)))
+          ? "Can’t reach the server. Please check your connection and try again."
+          : err?.message || "Something went wrong. Please try again.";
+      setErrorMessage(friendly);
+    } finally {
+      setLoading(false);
     }
   };
-  
+
+  // Optional: auto-clear error after a few seconds
+  useEffect(() => {
+    if (!errorMessage) return;
+    const t = setTimeout(() => setErrorMessage(""), 4000);
+    return () => clearTimeout(t);
+  }, [errorMessage]);
 
   return (
     <div className="flex w-screen h-screen justify-center items-center">
@@ -64,7 +98,6 @@ export default function SignInCard({ onRouteChange, loadUser }) {
         </CardHeader>
 
         <CardContent className="grid gap-6">
-
           <div className="relative">
             <Separator />
             <span className="absolute inset-0 -top-3 flex items-center justify-center">
@@ -77,13 +110,14 @@ export default function SignInCard({ onRouteChange, loadUser }) {
               <Label htmlFor="email" className="text-white">Email</Label>
               <div className="relative bg-white rounded-md">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="you@example.com" 
-                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400" 
-                  autoComplete="email" 
-                  onChange={onEmailChange} />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400"
+                  autoComplete="email"
+                  onChange={onEmailChange}
+                />
               </div>
             </div>
 
@@ -93,34 +127,44 @@ export default function SignInCard({ onRouteChange, loadUser }) {
               </div>
               <div className="relative bg-white rounded-md">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-9 focus-visible:ring-0 focus-visible:border-pink-400" 
-                  autoComplete="current-password" 
-                  onChange={onPasswordChange} />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-9 focus-visible:ring-0 focus-visible:border-pink-400"
+                  autoComplete="current-password"
+                  onChange={onPasswordChange}
+                />
               </div>
             </div>
 
             <div className="flex items-center justify-between" />
 
-            <Button 
-                type="submit"
-                value="Sign in"
-                className="w-full hover:cursor-pointer"
-                >
-                    Sign in
+            <Button
+              type="submit"
+              value="Sign in"
+              className="w-full hover:cursor-pointer"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
-              {errorMessage && (
-                <p className="text-sm text-red-500 mt-2 text-center">{errorMessage}</p>
-              )}
+
+            {errorMessage && (
+              <p className="text-sm text-red-500 mt-2 text-center" role="alert" aria-live="polite">
+                {errorMessage}
+              </p>
+            )}
           </form>
         </CardContent>
 
         <CardFooter className="flex items-center justify-center text-sm text-pink-100">
           Don&apos;t have an account?&nbsp;
-          <button onClick={() => onRouteChange("register")} className="font-medium text-foreground underline-offset-4 hover:underline hover:cursor-pointer">Create one</button>
+          <button
+            onClick={() => onRouteChange("register")}
+            className="font-medium text-foreground underline-offset-4 hover:underline hover:cursor-pointer"
+          >
+            Create one
+          </button>
         </CardFooter>
       </Card>
     </div>

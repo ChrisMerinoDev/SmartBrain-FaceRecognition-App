@@ -1,34 +1,54 @@
-const handleRegister = async(req, res, DB, bcrypt) => {
-    const { email, name, password } = req.body;
-    if (!email || !name || !password) return res.status(400).json("Missing fields");
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = await DB.transaction(async (trx) => {
-            const [loginRow] = await trx("login")
-            .insert({ 
-                email: email.toLowerCase(), 
-                hash: hashedPassword 
-            })
-            .returning(["email"]);
-
-            const [newUser] = await trx("users")
-            .insert({
-                email: loginRow.email,
-                name,
-                joined: new Date()
-            })
-            .returning("*");
-
-            return newUser;
-        });
-        return res.status(201).json(user);
-    } catch (error) {
-        if (error.code === "23505") return res.status(409).json("Email already exists.");
-        console.error(error);
-        res.status(400).json("Unable to register");
+// controllers/register.js
+const handleRegister = async (req, res, DB, bcrypt) => {
+    const { email, name, password } = req.body || {};
+  
+    // Basic validation
+    if (!email?.trim() || !name?.trim() || !password?.trim()) {
+      return res.status(400).json({ error: "Please provide name, email, and password." });
     }
-}
-
-export default handleRegister;
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const trimmedName = String(name).trim();
+  
+    // Very light email check (optional: use a stricter validator lib)
+    const emailOk = /^\S+@\S+\.\S+$/.test(normalizedEmail);
+    if (!emailOk) return res.status(400).json({ error: "Please enter a valid email address." });
+  
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+    }
+  
+    try {
+      const hash = await bcrypt.hash(password, 10);
+  
+      const user = await DB.transaction(async (trx) => {
+        // Insert into login
+        const [loginRow] = await trx("login")
+          .insert({ email: normalizedEmail, hash })
+          .returning(["email"]);
+  
+        // Insert into users
+        const [newUser] = await trx("users")
+          .insert({
+            email: loginRow.email,
+            name: trimmedName,
+            joined: new Date(),
+            entries: 0, // ensure default exists (optional)
+          })
+          .returning(["id", "name", "email", "entries", "joined"]);
+  
+        return newUser;
+      });
+  
+      return res.status(201).json(user);
+    } catch (error) {
+      // Postgres unique violation
+      if (error?.code === "23505") {
+        return res.status(409).json({ error: "Email already exists." });
+      }
+      console.error("Register error:", error);
+      return res.status(400).json({ error: "Unable to register." });
+    }
+  };
+  
+  export default handleRegister;
+  

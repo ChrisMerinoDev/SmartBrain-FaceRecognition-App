@@ -4,58 +4,106 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, UserIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = RAW_API_BASE ? RAW_API_BASE.replace(/\/+$/, "") : "";
 
 export default function RegisterCard({ onRouteChange, loadUser }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onNameChange = (e) => {
-    setName(e.target.value)
-  }
+    setName(e.target.value);
+    if (errorMessage) setErrorMessage("");
+  };
 
   const onEmailChange = (e) => {
-    setEmail(e.target.value)
-  }
+    setEmail(e.target.value);
+    if (errorMessage) setErrorMessage("");
+  };
 
   const onPasswordChange = (e) => {
-    setPassword(e.target.value)
-  }
+    setPassword(e.target.value);
+    if (errorMessage) setErrorMessage("");
+  };
 
-  const onSubmitRegister = (e) => {
+  const onSubmitRegister = async (e) => {
     e.preventDefault();
-    fetch(`${API_BASE}/register`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        name: name,
-        email: email,
-        password: password,
-      })
-    })
-    .then(response => response.json())
-    .then(user => {
-      if (user) {
-        loadUser(user)
-        console.log(user)
-        onRouteChange("home")
+    if (loading) return;
+
+    // Basic client-side validation
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setErrorMessage("Please enter name, email, and password.");
+      return;
+    }
+    if (!API_BASE) {
+      setErrorMessage("App is misconfigured: missing API base URL.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const res = await fetch(`${API_BASE}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // credentials: "include", // only if you use cookies/sessions
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!res.ok) {
+        // Prefer server JSON error if present
+        const ct = res.headers.get("content-type") || "";
+        let msg = "Could not create account.";
+        if (ct.includes("application/json")) {
+          const data = await res.json().catch(() => null);
+          if (data?.error) msg = data.error;
+        } else {
+          const text = await res.text().catch(() => "");
+          if (text) msg = text;
+        }
+        throw new Error(msg);
       }
-    })
-  }
+
+      const user = await res.json();
+      if (user?.id) {
+        loadUser(user);
+        onRouteChange("home");
+      } else {
+        setErrorMessage("Registration failed. Please try again.");
+      }
+    } catch (err) {
+      const friendly =
+        (err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message)))
+          ? "Can’t reach the server. Please check your connection and try again."
+          : err?.message || "Something went wrong. Please try again.";
+      setErrorMessage(friendly);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Optional: auto-clear error after a few seconds
+  useEffect(() => {
+    if (!errorMessage) return;
+    const t = setTimeout(() => setErrorMessage(""), 4000);
+    return () => clearTimeout(t);
+  }, [errorMessage]);
 
   return (
     <div className="flex w-screen h-screen justify-center items-center">
       <Card className="w-full max-w-sm shadow-xl gradient-bg">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl text-white">Register</CardTitle>
-          <CardDescription className="text-white">create your account</CardDescription>
+        <CardDescription className="text-white">create your account</CardDescription>
         </CardHeader>
 
         <CardContent className="grid gap-6">
-
           <div className="relative">
             <Separator />
             <span className="absolute inset-0 -top-3 flex items-center justify-center">
@@ -64,15 +112,15 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
           </div>
 
           <form className="grid gap-5" onSubmit={onSubmitRegister}>
-          <div className="grid gap-2">
+            <div className="grid gap-2">
               <Label htmlFor="name" className="text-white">Name</Label>
               <div className="relative bg-white rounded-md">
                 <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
-                <Input 
-                  id="name" 
-                  type="text" 
-                  placeholder="your name here" 
-                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400" 
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="your name here"
+                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400"
                   autoComplete="name"
                   onChange={onNameChange}
                 />
@@ -83,13 +131,13 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
               <Label htmlFor="email" className="text-white">Email</Label>
               <div className="relative bg-white rounded-md">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="you@example.com" 
-                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400" 
-                  autoComplete="email" 
-                  onChange={onEmailChange}  
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400"
+                  autoComplete="email"
+                  onChange={onEmailChange}
                 />
               </div>
             </div>
@@ -100,12 +148,12 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
               </div>
               <div className="relative bg-white rounded-md">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-9 focus-visible:ring-0 focus-visible:border-pink-400" 
-                  autoComplete="current-password" 
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-9 focus-visible:ring-0 focus-visible:border-pink-400"
+                  autoComplete="new-password"
                   onChange={onPasswordChange}
                 />
               </div>
@@ -115,18 +163,26 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
               <span className="text-xs text-white">Use a strong password</span>
             </div>
 
-            <Button 
-                type="submit" 
-                className="w-full hover:cursor-pointer"
-                >
-                    Register
+            <Button type="submit" className="w-full hover:cursor-pointer" disabled={loading}>
+              {loading ? "Creating account..." : "Register"}
             </Button>
+
+            {errorMessage && (
+              <p className="text-sm text-red-500 mt-2 text-center" role="alert" aria-live="polite">
+                {errorMessage}
+              </p>
+            )}
           </form>
         </CardContent>
 
         <CardFooter className="flex items-center justify-center text-sm text-pink-100">
           Already have an account?&nbsp;
-          <button onClick={() => onRouteChange("signin")} className="font-medium text-foreground underline-offset-4 hover:underline hover:cursor-pointer">Sign In</button>
+          <button
+            onClick={() => onRouteChange("signin")}
+            className="font-medium text-foreground underline-offset-4 hover:underline hover:cursor-pointer"
+          >
+            Sign In
+          </button>
         </CardFooter>
       </Card>
     </div>
