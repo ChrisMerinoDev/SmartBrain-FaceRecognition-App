@@ -11,20 +11,14 @@ import router from "./clarifaiAPI/clarifaiAPI.js";
 // knex module
 const DB = knex({ // DB - stands as DataBase
     client: 'pg',
-    connection: {
-      host: '127.0.0.1',
-      user: '',
-      password: '',
-      database: 'smart-brain',
-    },
+    connection: process.env.DATABASE_URL,
   });
 
 const PORT = process.env.PORT
+const FRONTEND_URL =process.env.FRONTEND_URL
 
 const app = express();
-app.use(express.json());
-app.use(cors());
-
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 

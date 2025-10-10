@@ -6,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, UserIcon } from "lucide-react";
 import { useState } from "react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 export default function RegisterCard({ onRouteChange, loadUser }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,7 +27,7 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
 
   const onSubmitRegister = (e) => {
     e.preventDefault();
-    fetch("http://localhost:3000/register", {
+    fetch(`${API_BASE}/register`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({

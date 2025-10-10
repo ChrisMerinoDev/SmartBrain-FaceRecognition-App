@@ -6,6 +6,8 @@ import { Separator } from "@/components/ui/separator";
 import { Mail, Lock } from "lucide-react";
 import { useState } from "react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 export default function SignInCard({ onRouteChange, loadUser }) {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
@@ -21,26 +23,37 @@ export default function SignInCard({ onRouteChange, loadUser }) {
     if (errorMessage) setErrorMessage("")
   }
 
-  const onSubmitSignIn = (e) => {
+  const onSubmitSignIn = async (e) => {
     e.preventDefault();
-    fetch("http://localhost:3000/signin", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        email: userEmail,
-        password: userPassword,
-      })
-    })
-    .then(response => response.json())
-    .then(user => {
-      if (user.id) {
-        loadUser(user)
-        onRouteChange("home")
-      } else {
-        setErrorMessage("Invalid Credentials")
+    setErrorMessage("");
+  
+    try {
+      const res = await fetch(`${API_BASE}/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // add credentials: "include" only if you use cookies/sessions
+        body: JSON.stringify({ email: userEmail, password: userPassword })
+      });
+  
+      if (!res.ok) {
+        // Optional: read error message from server if provided
+        const msg = await res.text().catch(() => "");
+        throw new Error(msg || "Invalid credentials");
       }
-    })
-  }
+  
+      const user = await res.json();
+      if (user?.id) {
+        loadUser(user);
+        onRouteChange("home");
+      } else {
+        setErrorMessage("Invalid Credentials");
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.message || "Something went wrong. Please try again.");
+    }
+  };
+  
 
   return (
     <div className="flex w-screen h-screen justify-center items-center">
