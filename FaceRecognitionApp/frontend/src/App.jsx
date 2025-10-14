@@ -64,6 +64,7 @@ export default function App() {
     setRegions([]);
   };
 
+  // update everything regarding user state
   useEffect(() => {
     if (user?.id > 0) {
       localStorage.setItem("user", JSON.stringify(user));
@@ -71,6 +72,21 @@ export default function App() {
       localStorage.removeItem("user");
     }
   }, [user]);
+
+  useEffect(() => {
+    const onPageShow = (e) => {
+      if (e.persisted) {
+        const saved = localStorage.getItem("user");
+        if (!saved) {
+          // ensure signed-out state if storage is empty
+          setUser({ id: 0, name: "", email: "", entries: 0, joined: "" });
+          setRoute("signin");
+        }
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   const onSignOut = () => {
     setUser({ id: 0, name: "", email: "", entries: 0, joined: "" });
