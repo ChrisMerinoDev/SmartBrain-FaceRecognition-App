@@ -12,8 +12,9 @@ import router from "./clarifaiAPI/clarifaiAPI.js";
 const DB = knex({ // DB - stands as DataBase
     client: 'pg',
     connection: process.env.DATABASE_URL,
+    ssl: true,
   });
-const PORT = process.env.PORT
+  
 const FRONTEND_URL =process.env.FRONTEND_URL
 
 const app = express();
@@ -25,8 +26,8 @@ app.use("/api/clarifai", router);
 
 app.get("/", (_request, response) => response.send("OK"))
 
-app.listen(PORT, () => {
-    console.log(`app server is running on port: ${PORT}`)
+app.listen(3000, () => {
+    console.log(`app server is running on port: 3000`)
 })
 
 // sign in
