@@ -9,33 +9,69 @@ import { useFaceBoxes } from "./hooks/useFaceBoxes";
 import SignInCard from "./components/SignIn/SignIn";
 import RegisterCard from "./components/Register/Register";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = RAW_API_BASE ? RAW_API_BASE.replace(/\/+$/, "") : "";
+
+const EMPTY_USER = { id: 0, name: "", email: "", entries: 0, joined: "" };
+
+function isValidUser(u) {
+  return (
+    u &&
+    Number.isFinite(u.id) &&
+    u.id > 0 &&
+    typeof u.name === "string" &&
+    typeof u.email === "string" &&
+    Number.isFinite(u.entries)
+  );
+}
+
+function getStoredUser() {
+  try {
+    const saved = localStorage.getItem("user");
+    if (!saved) return EMPTY_USER;
+    const parsed = JSON.parse(saved);
+    if (isValidUser(parsed)) return parsed;
+    // bad/corrupt shape → clear it
+    localStorage.removeItem("user");
+    return EMPTY_USER;
+  } catch {
+    localStorage.removeItem("user");
+    return EMPTY_USER;
+  }
+}
 
 export default function App() {
-  const [user, setUser] = useState({
-    id: 0,
-    name: "",
-    email: "",
-    entries: 0,
-    joined: "",
-  })
+  const [error, setError] = useState("");
+  const [inputUrl, setInputUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [regions, setRegions] = useState([]);
+
+  const initialUser = getStoredUser();
+  const [user, setUser] = useState(initialUser);
+  const [route, setRoute] = useState(initialUser.id ? "home" : "signin");
 
   const loadUser = (data) => {
-    setUser({
+    const normalized = {
       id: data.id,
       name: data.name,
       email: data.email,
       entries: data.entries,
       joined: data.joined,
-    })
-    setImageUrl("")
+    };
+    setUser(normalized);
+    localStorage.setItem("user", JSON.stringify(normalized));
+    setImageUrl("");
     setRegions([]);
-  }
-  const [route, setRoute] = useState("signin");
-  const [error, setError] = useState("");
-  const [inputUrl, setInputUrl] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [regions, setRegions] = useState([]);
+  };
+
+
+  const onSignOut = () => {
+    setUser({ id: 0, name: "", email: "", entries: 0, joined: "" });
+    localStorage.removeItem("user");
+    setImageUrl("");
+    setRegions([]);
+    setRoute("signin");
+  };
 
 
   const { imgRef, boxes, onImageLoad, updateBoxesFromRegions, reset } = useFaceBoxes();
@@ -159,7 +195,7 @@ export default function App() {
       <div className="relative z-20">
         {route === "home" ? (
           <div className="relative z-10 flex flex-col gap-8 p-8">
-            <Navigation onRouteChange={onRouteChange} />
+            <Navigation onRouteChange={onRouteChange} onSignOut={onSignOut} />
             <Logo />
             <Rank name={user.name} entries={user.entries}  />
 
