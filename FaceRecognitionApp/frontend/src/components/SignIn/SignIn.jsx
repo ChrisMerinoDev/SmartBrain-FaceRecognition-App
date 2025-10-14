@@ -31,7 +31,10 @@ export default function SignInCard({ onRouteChange, loadUser }) {
     if (loading) return;
 
     // Basic client-side validation
-    if (!userEmail.trim() || !userPassword.trim()) {
+    const email = userEmail.trim().toLowerCase();
+    const password = userPassword.trim();
+
+    if (!email || !password) {
       setErrorMessage("Please enter your email and password.");
       return;
     }
@@ -43,12 +46,17 @@ export default function SignInCard({ onRouteChange, loadUser }) {
     setLoading(true);
     setErrorMessage("");
 
+    // Per-request AbortController + optional timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
     try {
       const res = await fetch(`${API_BASE}/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // credentials: "include" // only if you use cookies/sessions
-        body: JSON.stringify({ email: userEmail, password: userPassword }),
+        body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -73,12 +81,17 @@ export default function SignInCard({ onRouteChange, loadUser }) {
         setErrorMessage("Invalid credentials");
       }
     } catch (err) {
-      const friendly =
-        (err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message)))
-          ? "Can’t reach the server. Please check your connection and try again."
-          : err?.message || "Something went wrong. Please try again.";
-      setErrorMessage(friendly);
+      if (err?.name === "AbortError") {
+        setErrorMessage("Server took too long. Try again.");
+      } else {
+        const friendly =
+          (err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message)))
+            ? "Can’t reach the server. Please check your connection and try again."
+            : err?.message || "Something went wrong. Please try again.";
+        setErrorMessage(friendly);
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -95,7 +108,7 @@ export default function SignInCard({ onRouteChange, loadUser }) {
       <Card className="w-full max-w-sm shadow-xl gradient-bg">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl text-white">Welcome back</CardTitle>
-          <CardDescription className="text-white">Sign in to your account</CardDescription>
+        <CardDescription className="text-white">Sign in to your account</CardDescription>
         </CardHeader>
 
         <CardContent className="grid gap-6">
@@ -118,6 +131,7 @@ export default function SignInCard({ onRouteChange, loadUser }) {
                   className="pl-9 focus-visible:ring-0 focus-visible:border-cyan-400"
                   autoComplete="email"
                   onChange={onEmailChange}
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -135,6 +149,7 @@ export default function SignInCard({ onRouteChange, loadUser }) {
                   className="pl-9 pr-10 focus-visible:ring-0 focus-visible:border-pink-400"
                   autoComplete="current-password"
                   onChange={onPasswordChange}
+                  disabled={loading}
                 />
                 <button
                   type="button"
@@ -175,6 +190,7 @@ export default function SignInCard({ onRouteChange, loadUser }) {
           <button
             onClick={() => onRouteChange("register")}
             className="font-medium text-foreground underline-offset-4 hover:underline hover:cursor-pointer"
+            disabled={loading}
           >
             Create one
           </button>

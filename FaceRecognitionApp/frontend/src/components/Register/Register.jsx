@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, UserIcon, Eye, EyeOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = RAW_API_BASE ? RAW_API_BASE.replace(/\/+$/, "") : "";
@@ -23,7 +23,6 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
 
   const onSubmitRegister = async (e) => {
     e.preventDefault();
@@ -45,8 +44,9 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
     setLoading(true);
     setErrorMessage("");
 
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    // Per-request AbortController (no ref)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000); // optional 12s timeout
 
     try {
       const res = await fetch(`${API_BASE}/register`, {
@@ -57,7 +57,7 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
           email: normalizedEmail,
           password: trimmedPassword,
         }),
-        signal: abortRef.current.signal,
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -82,21 +82,22 @@ export default function RegisterCard({ onRouteChange, loadUser }) {
         setErrorMessage("Registration failed. Please try again.");
       }
     } catch (err) {
-      if (err?.name === "AbortError") return;
-      const friendly =
-        err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message))
-          ? "Can’t reach the server. Please check your connection and try again."
-          : err?.message || "Something went wrong. Please try again.";
-      setErrorMessage(friendly);
+      if (err?.name === "AbortError") {
+        setErrorMessage("Server took too long. Try again.");
+      } else {
+        const friendly =
+          err?.name === "TypeError" || /Failed to fetch/i.test(String(err?.message))
+            ? "Can’t reach the server. Please check your connection and try again."
+            : err?.message || "Something went wrong. Please try again.";
+        setErrorMessage(friendly);
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    return () => abortRef.current?.abort();
-  }, []);
-
+  // Auto-clear error after a few seconds
   useEffect(() => {
     if (!errorMessage) return;
     const t = setTimeout(() => setErrorMessage(""), 4000);
