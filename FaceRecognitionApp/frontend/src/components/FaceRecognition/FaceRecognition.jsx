@@ -29,3 +29,5 @@ const FaceRecognition = ({ imageUrl, boxes = [], imgRef, onImageLoad }) => {
     </div>
   );
 };
+
+export default FaceRecognition;
