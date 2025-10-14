@@ -47,3 +47,22 @@ CLARIFAI_PAT=your_clarifai_api_key
 
 # Start development server
 npm run dev
+
+
+📸 How It Works
+
+Register or sign in to your account
+
+Paste an image URL or upload an image
+
+The app detects faces and outlines them with bounding boxes
+
+Your profile updates the number of images processed
+
+
+👨Author
+Chris Merino
+👨‍💻Web-Developer & Software-Engineer
+
+GitHub - [https://github.com/ChrisMerinoDev]
+LinkedIn - [https://www.linkedin.com/in/chrismerinodev/]
