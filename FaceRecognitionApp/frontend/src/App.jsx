@@ -9,7 +9,7 @@ import { useFaceBoxes } from "./hooks/useFaceBoxes";
 import SignInCard from "./components/SignIn/SignIn";
 import RegisterCard from "./components/Register/Register";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export default function App() {
   const [user, setUser] = useState({

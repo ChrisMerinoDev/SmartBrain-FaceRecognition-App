@@ -13,7 +13,6 @@ const DB = knex({ // DB - stands as DataBase
     client: 'pg',
     connection: process.env.DATABASE_URL,
   });
-
 const PORT = process.env.PORT
 const FRONTEND_URL =process.env.FRONTEND_URL
 
