@@ -41,11 +41,16 @@ const handleRegister = async (req, res, DB, bcrypt) => {
   
       return res.status(201).json(user);
     } catch (error) {
-      // Postgres unique violation
+      console.error("Register error:", {
+        code: error?.code,
+        detail: error?.detail,
+        message: error?.message,
+        constraint: error?.constraint,
+        stack: error?.stack,
+      });
       if (error?.code === "23505") {
         return res.status(409).json({ error: "Email already exists." });
       }
-      console.error("Register error:", error);
       return res.status(400).json({ error: "Unable to register." });
     }
   };

@@ -9,13 +9,16 @@ import imageEntries from "./controllers/imageEntries.js";
 import router from "./clarifaiAPI/clarifaiAPI.js";
 
 // knex module
-const DB = knex({ // DB - stands as DataBase
-    client: 'pg',
-    connection: process.env.DATABASE_URL,
-    ssl: true,
-  });
-  
-const FRONTEND_URL =process.env.FRONTEND_URL
+const DB = knex({
+  client: "pg",
+  connection: {
+    connectionString: process.env.DATABASE_URL, // or just: connection: process.env.DATABASE_URL
+    ssl: { rejectUnauthorized: false }, // important on Render
+  },
+});
+
+const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL
 
 const app = express();
 app.use(cors({ origin: FRONTEND_URL }));
@@ -26,9 +29,7 @@ app.use("/api/clarifai", router);
 
 app.get("/", (_request, response) => response.send("OK"))
 
-app.listen(3000, () => {
-    console.log(`app server is running on port: 3000`)
-})
+app.listen(PORT, () => console.log(`app server is running on port: ${PORT}`));
 
 // sign in
 app.post("/signin", (req, res) => { handleSignIn(req, res, DB, bcrypt) })
