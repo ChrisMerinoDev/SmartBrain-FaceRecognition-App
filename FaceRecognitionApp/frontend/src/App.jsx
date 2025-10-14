@@ -64,6 +64,13 @@ export default function App() {
     setRegions([]);
   };
 
+  useEffect(() => {
+    if (user?.id > 0) {
+      localStorage.setItem("user", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("user");
+    }
+  }, [user]);
 
   const onSignOut = () => {
     setUser({ id: 0, name: "", email: "", entries: 0, joined: "" });
