@@ -62,7 +62,7 @@ export default function App() {
       reset();
       setRegions([]);
 
-      const response = await fetch(`${API_BASE}/clarifai/face-detect`, {
+      const response = await fetch(`${API_BASE}/api/clarifai/face-detect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageUrl: inputUrl }),
@@ -72,7 +72,7 @@ export default function App() {
 
       if (data) {
         try {
-          const res = await fetch(`${API_BASE}/image`, {
+          const res = await fetch(`${API_BASE}/api/image`, {
             method: "PUT",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
@@ -114,7 +114,7 @@ export default function App() {
       const form = new FormData();
       form.append("image", file);
   
-      const response = await fetch(`${API_BASE}/clarifai/face-detect/upload`, {
+      const response = await fetch(`${API_BASE}/api/clarifai/face-detect/upload`, {
         method: "POST",
         body: form,
       });
@@ -124,7 +124,7 @@ export default function App() {
   
       // increment entries (same as before)
       if (user?.id) {
-        const res = await fetch(`${API_BASE}/image`, {
+        const res = await fetch(`${API_BASE}/api/image`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: user.id }),

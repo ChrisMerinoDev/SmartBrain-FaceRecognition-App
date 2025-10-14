@@ -1,9 +1,12 @@
 const FaceRecognition = ({ imageUrl, boxes = [], imgRef, onImageLoad }) => {
+  const safeRef =
+    imgRef && typeof imgRef === "object" && "current" in imgRef ? imgRef : null;
+
   return (
     <div className="relative mx-auto max-w-xl">
       {imageUrl && (
         <img
-          ref={imgRef}
+          ref={safeRef}
           src={imageUrl}
           alt="face detection target"
           onLoad={onImageLoad}
@@ -25,6 +28,4 @@ const FaceRecognition = ({ imageUrl, boxes = [], imgRef, onImageLoad }) => {
       ))}
     </div>
   );
-}
-
-export default FaceRecognition;
+};
